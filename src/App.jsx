@@ -16,7 +16,7 @@
    not clicked, the search term can change but isn't executed as 
    API request.
 
-   Task: (from prev section memoizing) Kept it here so that I wont forget.
+   Previous Task: (from prev section memoizing) Kept it here so that I wont forget.
      We will refactor the code upfront to use a memoized 
    function and provide the explanations afterward. The refactoring 
    consists of moving all the data fetching logic from the 
@@ -25,29 +25,34 @@
    it in the useEffect hook (C):
 
   Optional Hints Explicit Data Fetching:
+    - 
     - (AA) Add a button element to confirm the search request.
       But first of all, create a new button element which confirms 
       the search and executes the data request eventually (AA)
 
     - (BB) rename handler 'handleSearch' to handleSearchInput. 
-
-    - What's important with this feature is that we need a state 
-      for the fluctuating searchTerm and a new state for the confirmed 
-      search.  
-
+     
       (CC)Create a a handler for the button which sets the new 
       state value. The button's event handler sets confirmed search as 
       state by using the current search term.  
          
     - Only when the new confirmed search is set as state, 
       execute the side-effect to perform a server-side search.
+ 
+    - (DD) after creating a handler for the button, create a state 
+      called 'url' using the API and concatenated with the value of the 
+      search input box
+           const [url, setUrl] = React.useState(
+              `${API_ENDPOINT}${searchTerm}`);
 
-    - (DD) Instead of running the data fetching side-effect on 
+     - (EE) Instead of running the data fetching side-effect on 
       every searchTerm change (which happens each time the 
       input field's value changes like we have seen before), 
       the new stateful url is used whenever a user changes it 
       by confirming a search request when clicking the button:
 
+      TO TEST: enter search criteria and click Submit button
+     
   Review what is useState?
       - https://www.robinwieruch.de/react-usestate-hook/
 
