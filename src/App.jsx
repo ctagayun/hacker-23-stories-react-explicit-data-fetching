@@ -76,46 +76,6 @@
 =============================================*/
 import * as React from 'react';
 
-const API_ENDPOINT = 'https://hn.algolia.com/api/v1/search?query=';
-
-/* No need for this because we will fetch data directly using the API
-const getAsyncStories = () =>
-  new Promise((resolve) =>
-    setTimeout(
-      () => resolve({ data: { stories: initialStories } }),
-      2000
-    )
-  ); */
-
-//Again the first thing to do when using React.useReducer hook
-//is to define a reducer function outside of the component.
-//A reducer function always receives a state and an action. 
-//Based on these two arguments, returns a new state.
-
-/* 
- We changed two things from the above original reducer function. 
-   1. First, we introduced new types when we called the dispatch 
-      function from the outside. 
-      Therefore we need to add the following new cases for state transitions.
-         'STORIES_FETCH_INIT' 
-         'STORIES_FETCH_SUCCESS'
-         'STORIES_FETCH_FAILURE'
-         'REMOVE_STORY'
-         throw new Error();
-   2. Second, we changed the state structure from an array to 
-      a complex object. Therefore we need to take the new complex 
-      object into account as incoming state and returned state:
-
-   3.For every state transition, we return a new state object 
-     which contains all the key/value pairs from the current 
-     state object (via JavaScript's spread operator ...state) and 
-     the new overwriting properties 
-     
-     For example, STORIES_FETCH_FAILURE sets the 
-     isLoading boolean to false and sets the isError boolean 
-     to true, while keeping all the the other state intact 
-     (e.g. data alias stories)
-*/
 const storiesReducer = (state, action) => {
   switch (action.type) {
     case 'STORIES_FETCH_INIT': //distinct type and payload 
@@ -178,36 +138,18 @@ const useStorageState = (key, initialState) => {
   return [value, setValue];
 };
 
+const API_ENDPOINT = 'https://hn.algolia.com/api/v1/search?query=';
+
 const App = () => {
   const [searchTerm, setSearchTerm] = useStorageState(
     'search',
     'React'
   );
 
-  
-  /*
-    Take the following hooks: And merge them into one useReducer 
- hook for a unified state. Because technically, all states related 
- to the asynchronous data belong together, which doesn't only 
- include the stories as actual data, but also their loading and 
- error states.
-    That's where one reducer and React's useReducer Hook come 
- into play to manage domain related states.
-
-      const App = () => {
-      ...
-      const [stories, dispatchStories] = React.useReducer(
-        storiesReducer,
-        []
-      );
-      const [isLoading, setIsLoading] = React.useState(false);
-      const [isError, setIsError] = React.useState(false);
-      ...
-    };
-  */
-
-   //data: [], isLoading, isError flags hooks merged into one 
-   //useReducer hook for a unified state.
+  const [url, setUrl] = React.useState(
+    `${API_ENDPOINT}${searchTerm}`
+  );
+   
   const [stories, dispatchStories] = React.useReducer( //A
     storiesReducer,
     { data: [], isLoading: false, isError: false } //We want an empty list data [] 
@@ -215,91 +157,10 @@ const App = () => {
                                                    //is error=false
   );
 
-  //(DD) new handler of the button sets the new stateful value 
-  //called 'url' which is derived from the current searchTerm and 
-  //the static API endpoint as a new state:
-  const [url, setUrl] = React.useState(
-    `${API_ENDPOINT}${searchTerm}`
-  );
-
-  /*   Memoized useEffect
-    After merging the three useState hooks into one Reducer hook,
-  we cannot use the state updater functions from React's 
-  useState Hooks anymore like:
-       setIsLoading, setIsError
-  everything related to asynchronous data fetching must now use 
-  the new dispatch function "dispatchStories" see (A)
-  for updating state transitions 
-
-  React.useEffect(() => {
-
-     if `searchTerm` is not present
-      e.g. null, empty string, undefined
-      do nothing
-      more generalized condition than searchTerm === '' 
-
-    if (!searchTerm) return;
-     dispatchStories receiving different payload
-     dispatchStories({ type: 'STORIES_FETCH_INIT' }); //for init
-                     //dispatchStories receives STORIES_FETCH_INIT as type
-
-    First - API is used to fetch popular tech stories for a certain query 
-            (a search term). In this case  we fetch stories about 'react' (B)
-
-    Second - the native browser's fetch API (see https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
-             to make this request.
-             For 'fetch' API, the response needs to be translated to JSON (C)
-    
-    Finally - the returned result has a different data structure which we send
-              payload to our component's state reducer (dispatchStories)
-   
-    We need to migrate the search to server-side search
-    Instead of using the hardcoded search term (here: 'react'), use the 
-    actual searchTerm from the component's state like the following code.
-
-    fetch(`${API_ENDPOINT}${searchTerm}`) // B
-      .then((response) => response.json()) // C
-      .then((result) => {
-         dispatchStories({
-           type: 'STORIES_FETCH_SUCCESS',
-           payload: result.hits, //D
-         });
-      })
-      .catch(() =>
-        dispatchStories({type:'STORIES_FETCH_FAILURE'})
-      );
-    }, [searchTerm]); //If we would want to run the side-effect also when the
-                       searchTerm changes, we would have to include it in 
-                      the dependency array:
-  */
-
-  //Memoized the above useEffect() by using useCallBack hook.
-  //The refactoring consists of:
-  // 1. moving all the data fetching logic from the side-effect 
-  //    into a arrow function expression (A)
-  // 2. Then wrapping this new function into React.useCallback (B)
-  // 3. and invoking it in the useEffect hook (C):
-  
-  //  1. Mainly what we did is to extract a function from React's useEffect Hook
-  //     commented out above. Instead of using the data fetching logic directly 
-  //     in the side-effect , we made it available as a function for the 
-  //     entire application.
-  //     The benefit: reusability. The data fetching can be used by other parts 
-  //     of the application by calling this new function. (A)
-  //
-  //   2. We wrapped the whole function using useCallBack hook (B)
-  //      useCallBack function hook creates a memoized function
-  //      every time its dependency array (E) changes as result 
-  //      useEffect hook  handleFetchStories() runs again (C)
-  //      because it depends on the new memoized function "handleFetchStories"
-
-  // A 
-  const handleFetchStories = React.useCallback(() => { // B
-    if (!searchTerm) return;
+  const handleFetchStories = React.useCallback(() => {  
  
     dispatchStories({ type: 'STORIES_FETCH_INIT' });
  
-    //fetch(`${API_ENDPOINT}${searchTerm}`)
     fetch(url) //DD use the stateful 'url'
       .then((response) => response.json())
       .then((result) => {
@@ -311,22 +172,8 @@ const App = () => {
       .catch(() =>
         dispatchStories({ type: 'STORIES_FETCH_FAILURE' })
       );
-     // [searchTerm])  with 'url (DD)
-  }, [url]) //replace 'searhTerm' with stateful 'url' 
-       const myDependencyArray = JSON.stringify(searchTerm);
-       console.log("dependency array SearchTerm value = " + myDependencyArray);
-        ; //EOF //E - every time searchTerm dependency array (E) changes 
-                    //useCallback Hook creates a memoized function. As a
-                    //result React.useEffect runs again (C) because it depends 
-                    //on the new function (D)
-
-                    //React's useCallback hook changes the function only 
-                    //when one of its values in the dependency array (E) changes. 
-                    //That's when we want to trigger a re-fetch of the data, 
-                    //because the input field has new input and we want to see 
-                    //the new data displayed in our list.
-                    //Note: the dependency array contains the stuff we type in 
-                    //the input field
+      
+  }, [url])  
 
   //useEffect executes every time [searchTerm] dependency array (E) changes.
   //As a result it runs again the memoized function (C) because it depends
@@ -343,27 +190,15 @@ const App = () => {
     });
   };  //EOF handleRemoveStory
 
- 
-
-  //(BB) rename handler handleSearch to handleSearchInput
-  ///renamed handler of the input field still sets 
-  //the stateful searchTerm,
   const handleSearchInput = (event) => {
     setSearchTerm(event.target.value);
   };
 
-  //(CC) create new handler for the button.
-  //While the renamed handler of the input field still sets 
-  //the stateful searchTerm ... the new handler of the button 
-  //sets the new stateful value called 'url' which is derived 
-  //from the current searchTerm and the static API endpoint 
-  //as a new state
   const handleSearchSubmit = () => {  //CC
     setUrl(`${API_ENDPOINT}${searchTerm}`);
   };
 
-  
-   return (
+  return (
     <div>
       <h1>My Hacker Stories</h1>
 
